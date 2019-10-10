@@ -35,23 +35,28 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
         }
 
         [[eosio::action]]
-        void approve(eosio::name user) {
-            require_auth(admin_username);
-            print("Approve request for ", user);
-			request_index requests( get_self(), get_first_receiver().value);
-			auto iterator = requests.find(user.value);
-			if (iterator != requests.end()) {
-				requests.modify(iterator, user, [&]( auto& row ) {
-					row.status 			= "approved";
-				});
-			} else {
-				printf("user not found");
-			}
+        void approve(eosio::name user, int distance) {
+            require_auth(admin_user);
+            if (distance > 0){
+                print("Approve request for ", user);
+                request_index requests( get_self(), get_first_receiver().value);
+                auto iterator = requests.find(user.value);
+                if (iterator != requests.end()) {
+                    requests.modify(iterator, user, [&]( auto& row ) {
+                        row.status 			= "approved";
+                        row.distance        = distance;
+                    });
+                } else {
+                    printf("user not found");
+                }
+            } else {
+                printf("distance must be greater than zero");
+            }
         }
 
         [[eosio::action]]
         void reject ( eosio::name user) {
-            require_auth(admin_username);
+            require_auth(admin_user);
             print("reject request for ", user);
 			request_index requests( get_self(), get_first_receiver().value);
 			auto iterator = requests.find(user.value);
@@ -66,7 +71,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
 
         [[eosio::action]]
         void erase( eosio::name user) {
-            require_auth(admin_username);
+            require_auth(admin_user);
             print("erase request for ", user);
 			request_index requests( get_self(), get_first_receiver().value);
 
@@ -80,7 +85,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
 
         [[eosio::action]]
         void disclose( ) {
-            require_auth(admin_username);
+            require_auth(admin_user);
             printf("Checking to see if any funds are not yet approved or rejected");
 			/*
 			auto iterator = requests.find(user.value);
@@ -96,7 +101,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             printf("Disclose all funds");
         }
     private:
-        eosio::name admin_username = eosio::name("bob");
+        eosio::name admin_user = eosio::name("bob");
         struct [[eosio::table]] request{
             eosio::name key;
             eosio::name requester_name;
