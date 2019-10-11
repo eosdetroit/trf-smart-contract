@@ -3,6 +3,7 @@
 class [[eosio::contract("trf")]] trf : public eosio::contract {
     public:
         trf(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : eosio::contract(self, first_receiver, ds) {
+            /*
             print( "self: ", self, ' ');
             print( "first_receiver: ", first_receiver, ' ');
             char * ds_string = (char *)malloc(100);
@@ -14,6 +15,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
                 printf( "%i,", ds_string[i] );
             }
             printf("' ");
+            */
         }
 
 
@@ -25,8 +27,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             auto iterator = requests.find(user.value);
 			if( iterator == requests.end() ) {
 				requests.emplace(user, [&]( auto& row ) {
-					row.key 			= user;
-					row.requester_name 	= user;
+					row.user = user;
 					row.status 			= "pending";
 				});
 			} else {
@@ -42,12 +43,12 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
                 request_index requests( get_self(), get_first_receiver().value);
                 auto iterator = requests.find(user.value);
                 if (iterator != requests.end()) {
-                    requests.modify(iterator, user, [&]( auto& row ) {
+                    requests.modify(iterator, admin_user, [&]( auto& row ) {
                         row.status 			= "approved";
                         row.distance        = distance;
                     });
                 } else {
-                    printf("user not found");
+                    printf("\nuser not found\n");
                 }
             } else {
                 printf("distance must be greater than zero");
@@ -61,11 +62,11 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
 			request_index requests( get_self(), get_first_receiver().value);
 			auto iterator = requests.find(user.value);
 			if (iterator != requests.end()) {
-				requests.modify(iterator, user, [&]( auto& row ) {
+				requests.modify(iterator, admin_user, [&]( auto& row ) {
 					row.status 			= "rejected";
 				});
 			} else {
-				printf("user not found");
+				printf("\nuser not found\n");
 			}
         }
 
@@ -103,11 +104,10 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
     private:
         eosio::name admin_user = eosio::name("bob");
         struct [[eosio::table]] request{
-            eosio::name key;
-            eosio::name requester_name;
+            eosio::name user;
             std::string status;
             int distance;
-            uint64_t primary_key() const { return key.value; }
+            uint64_t primary_key() const { return user.value; }
         };
         typedef eosio::multi_index<"requests"_n, request> request_index;
         

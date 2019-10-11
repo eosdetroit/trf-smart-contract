@@ -15,11 +15,11 @@ date
 
 if [ 0 = 1 ]; then
 	echo "preprocess, compile, assemble"
-	eosio-cpp  -o trf.o -c -abigen trf.cpp
+	eosio-cpp  -o trf.o  -abigen trf.cpp
 	time_passed
 fi
 
-if [ 0 = 1 ]; then
+if [ 1 = 1 ]; then
 	echo "full build"
 	#eosio-ld -o trf.wasm trf.o
 	eosio-cpp -abigen -o trf.wasm trf.cpp
@@ -38,9 +38,9 @@ if [ 1 = 1 ]; then
 	cleos push action trf erase '["alice"]' -p bob@active
 	cleos push action trf create '["alice"]' -p alice@active
 	cleos push action trf create '["bob"]' -p bob@active
-	cleos push action trf reject '["alice"]' -p bob@active
-	cleos push action trf approve '["alice", 10]' -p bob@active
 	cleos push action trf approve '["bob", 10]' -p bob@active
+	#cleos push action trf approve '["bob", 10]' -p bob@active
+	cleos push action trf reject '["alice"]' -p bob@active
 	#cleos push action trf disclose '[]' -p bob@active
 fi
 
