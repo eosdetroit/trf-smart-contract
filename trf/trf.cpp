@@ -109,7 +109,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             int distance;
             uint64_t primary_key() const { return user.value; }
         };
-        typedef eosio::multi_index<"requests"_n, request> request_index;
+        typedef eosio::multi_index<eosio::name("requests"), request> request_index;
         
 };
 

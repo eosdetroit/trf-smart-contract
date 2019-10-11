@@ -28,7 +28,7 @@ if [ 1 = 1 ]; then
 fi
 
 if [ 1 = 1 ]; then
-	#cleos wallet unlock
+	cleos wallet unlock
 	ADMIN_USERNAME="bvizeqdoq5ga"
     echo "set contract"
 	cleos set contract trf . -p trf@active
