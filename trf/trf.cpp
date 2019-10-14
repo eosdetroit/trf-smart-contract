@@ -102,7 +102,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             printf("Disclose all funds");
         }
     private:
-        eosio::name admin_user = eosio::name("bob");
+        eosio::name admin_user = eosio::name("trfadminuser");
         struct [[eosio::table]] request{
             eosio::name user;
             std::string status;
@@ -110,6 +110,5 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             uint64_t primary_key() const { return user.value; }
         };
         typedef eosio::multi_index<eosio::name("requests"), request> request_index;
-        
 };
 
