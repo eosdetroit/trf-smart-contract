@@ -21,7 +21,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
 
         [[eosio::action]]
         void create ( eosio::name user) {
-            require_auth( user);
+            require_auth(user);
             request_index requests( get_self(), get_first_receiver().value );
             print("Creating a new request for ", user);
             auto iterator = requests.find(user.value);
@@ -85,7 +85,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
         }
 
         [[eosio::action]]
-        void disclose( ) {
+        void disburse( ) {
             require_auth(admin_user);
             printf("Checking to see if any funds are not yet approved or rejected");
 			/*
@@ -99,7 +99,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
 			}
 			*/
             printf("None found");
-            printf("Disclose all funds");
+            printf("Disburse all funds");
         }
     private:
         eosio::name admin_user = eosio::name("trfadminuser");
