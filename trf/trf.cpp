@@ -102,7 +102,7 @@ class [[eosio::contract("trf")]] trf : public eosio::contract {
             printf("Disclose all funds");
         }
     private:
-        eosio::name admin_user = eosio::name("bob");
+        eosio::name admin_user = eosio::name("wigglewiggle");
         struct [[eosio::table]] request{
             eosio::name user;
             std::string status;

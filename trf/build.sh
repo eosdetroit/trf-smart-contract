@@ -28,10 +28,10 @@ if [ 1 = 1 ]; then
 fi
 
 if [ 1 = 1 ]; then
-	cleos wallet unlock
+	#cleos wallet unlock
 	ADMIN_USERNAME="bvizeqdoq5ga"
     echo "set contract"
-	cleos set contract trf . -p trf@active
+	cleos -u https://api.jungle.alohaeos.com set contract trf . -p wigglewiggle@active
     echo "push"
 	cleos push action trf erase '[""]' -p bob@active
 	cleos push action trf erase '["bob"]' -p bob@active
