@@ -1,8 +1,8 @@
 #include <eosio/eosio.hpp>
 
-class [[eosio::contract("trf")]] trf : public eosio::contract {
+class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract {
     public:
-        trf(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : eosio::contract(self, first_receiver, ds) {
+        travelrefund(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : eosio::contract(self, first_receiver, ds) {
             /*
             print( "self: ", self, ' ');
             print( "first_receiver: ", first_receiver, ' ');
