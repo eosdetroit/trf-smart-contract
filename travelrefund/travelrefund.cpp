@@ -102,7 +102,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
             printf("Disclose all funds");
         }
     private:
-        eosio::name admin_user = eosio::name("wigglewiggle");
+        eosio::name admin_user = eosio::name("trfadminuser");
         struct [[eosio::table]] request{
             eosio::name user;
             std::string status;
