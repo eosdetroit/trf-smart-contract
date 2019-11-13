@@ -13,37 +13,55 @@ time_passed () {
 
 date
 
-if [ 0 = 1 ]; then
-	echo "preprocess, compile, assemble"
-	eosio-cpp  -o travelrefund.o  -abigen travelrefund.cpp
-	time_passed
-fi
+build=1
+unlock=${1:-0}
 
-if [ 1 = 1 ]; then
-	echo "full build"
-	#eosio-ld -o travelrefund.wasm travelrefund.o
+
+if [ $build = 1 ]; then
+    echo "[build]"
 	eosio-cpp -abigen -o travelrefund.wasm travelrefund.cpp
-	echo "done"
+    echo "[done]"
 	time_passed
 fi
 
+if [ $unlock = 1 ]; then
+	cleos wallet unlock 
+fi
+
+#domain="https://api.jungle.alohaeos.com"
+domain="http://localhost:8888"
+ADMIN_USERNAME="trfadminuser"
+
 if [ 1 = 1 ]; then
-	#cleos wallet unlock
-	ADMIN_USERNAME="bvizeqdoq5ga"
-    echo "set contract"
-	cleos -u https://api.jungle.alohaeos.com set contract travelrefund . -p wigglewiggle@active
+    echo "[set contract]"
+	cleos -u $domain set contract travelrefund . -p travelrefund@active
+    echo "[done]"
+fi
+
+if [ 0 = 1 ]; then
+	cleos -u $domain push action travelrefund erase '["trfsourbasis"]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund erase '["trftidyfairy"]' -p trfadminuser@active
+fi
+if [ 1 = 1 ]; then
+    echo "[process]"
+	cleos -u $domain push action travelrefund process '[]' -p trfadminuser@active
+    echo "[done]"
+fi
+if [ 1 = 0 ]; then
     echo "push"
-	cleos push action travelrefund erase '[""]' -p bob@active
-	cleos push action travelrefund erase '["bob"]' -p bob@active
-	cleos push action travelrefund erase '["alice"]' -p bob@active
-	cleos push action travelrefund create '["alice"]' -p alice@active
-	cleos push action travelrefund create '["bob"]' -p bob@active
-	cleos push action travelrefund approve '["bob", 10]' -p bob@active
-	#cleos push action travelrefund approve '["bob", 10]' -p bob@active
-	cleos push action travelrefund reject '["alice"]' -p bob@active
-	#cleos push action travelrefund disclose '[]' -p bob@active
+	cleos -u $domain push action travelrefund create '["trfadminuser"]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund create '["trftidyfairy"]' -p trftidyfairy@active
+	cleos -u $domain push action travelrefund create '["trfsourbasis"]' -p trfsourbasis@active
+	cleos -u $domain push action travelrefund approve '["trfadminuser", 120]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund approve '["trftidyfairy", 60]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund approve '["trfsourbasis", 10]' -p trfadminuser@active
+	#cleos push action travelrefund approve '["trfsourbasis", 10]' -p trfsourbasis@active
+	cleos -u $domain push action travelrefund reject '["trftidyfairy"]' -p trfadminuser@active
+	#cleos push action travelrefund disclose '[]' -p trfsourbasis@active
 fi
 
 if [ 1 = 1 ]; then
-    cleos get table travelrefund travelrefund requests 
+    echo "get table"
+    cleos -u $domain get table travelrefund travelrefund requests 
+    cleos -u $domain get table travelrefund travelrefund payouts 
 fi

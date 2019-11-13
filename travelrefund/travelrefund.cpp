@@ -1,28 +1,16 @@
 #include <eosio/eosio.hpp>
 
+
 class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract {
     public:
         travelrefund(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : eosio::contract(self, first_receiver, ds) {
-            /*
-            print( "self: ", self, ' ');
-            print( "first_receiver: ", first_receiver, ' ');
-            char * ds_string = (char *)malloc(100);
-            ds.seekp(0);
-            int len = ds.remaining();
-            ds.read(ds_string, len);
-                printf( "ds: '");
-            for (int i = 0; i < len; ++i) {
-                printf( "%i,", ds_string[i] );
-            }
-            printf("' ");
-            */
         }
 
 
         [[eosio::action]]
         void create ( eosio::name user) {
             require_auth( user);
-            request_index requests( get_self(), get_first_receiver().value );
+            request_multi_index requests( get_self(), get_first_receiver().value );
             print("Creating a new request for ", user);
             auto iterator = requests.find(user.value);
 			if( iterator == requests.end() ) {
@@ -36,11 +24,44 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         }
 
         [[eosio::action]]
+        void process() {
+            require_auth(admin_user);
+            request_multi_index requests = request_multi_index( get_self(), get_first_receiver().value);
+            float sum_distance = 0;
+            for (auto &item : requests) {
+                if (item.status == "approved") {
+                    sum_distance += item.distance;
+                }
+            }
+            eosio::print("[sum_distance:    ",  sum_distance);
+            payout_multi_index payouts( get_self(), get_first_receiver().value );
+            for(auto itr = payouts.begin(); itr != payouts.end();) {
+                itr = payouts.erase(itr);
+            }
+            // clear out the payout table
+            for (auto &item : requests) {
+                // erase payout if exists
+                if (item.status == "approved") {
+                auto payout_found = payouts.find(item.user.value);
+                    if (payout_found == payouts.end()) {
+                        payouts.emplace(admin_user, [&]( auto& row ) {
+                            row.user                = item.user;
+                            row.status 	            = "processing";
+                            row.distance            = item.distance;
+                            row.distance_percent    = item.distance/sum_distance;
+                            row.amount              = 0;
+                        });
+                    }
+                }
+            }
+        }
+
+        [[eosio::action]]
         void approve(eosio::name user, int distance) {
             require_auth(admin_user);
             if (distance > 0){
                 print("Approve request for ", user);
-                request_index requests( get_self(), get_first_receiver().value);
+                request_multi_index requests( get_self(), get_first_receiver().value);
                 auto iterator = requests.find(user.value);
                 if (iterator != requests.end()) {
                     requests.modify(iterator, admin_user, [&]( auto& row ) {
@@ -59,7 +80,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         void reject ( eosio::name user) {
             require_auth(admin_user);
             print("reject request for ", user);
-			request_index requests( get_self(), get_first_receiver().value);
+			request_multi_index requests( get_self(), get_first_receiver().value);
 			auto iterator = requests.find(user.value);
 			if (iterator != requests.end()) {
 				requests.modify(iterator, admin_user, [&]( auto& row ) {
@@ -74,7 +95,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         void erase( eosio::name user) {
             require_auth(admin_user);
             print("erase request for ", user);
-			request_index requests( get_self(), get_first_receiver().value);
+			request_multi_index requests( get_self(), get_first_receiver().value);
 
 			auto iterator = requests.find(user.value);
 			if (iterator != requests.end()) {
@@ -103,13 +124,23 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         }
     private:
         eosio::name admin_user = eosio::name("trfadminuser");
-        struct [[eosio::table]] request{
+        struct [[eosio::table]] request_struct{
             eosio::name user;
             std::string status;
             int distance;
             uint64_t primary_key() const { return user.value; }
         };
-        typedef eosio::multi_index<eosio::name("requests"), request> request_index;
+        typedef eosio::multi_index<eosio::name("requests"), request_struct> request_multi_index;
+
+        struct [[eosio::table]] payout_struct{
+            eosio::name user;
+            std::string status;
+            float distance;
+            float distance_percent; 
+            float amount;
+            uint64_t primary_key() const { return user.value; }
+        };
+        typedef eosio::multi_index<eosio::name("payouts"), payout_struct> payout_multi_index;
         
 };
 
