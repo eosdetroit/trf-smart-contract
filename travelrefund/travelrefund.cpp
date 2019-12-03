@@ -44,12 +44,11 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                                                      ^~~~~~~~~~~~~~
                                                ^
          */
-            const auto sym_code= eosio::symbol_code("EOS");
             // assertion failure with message: only uppercase letters allowed in symbol_code string
-            //
+            const auto sym_code= eosio::symbol_code("EOS");
             eosio::asset balance_asset = eosio::token::get_balance(eosio::name("travelrefund"), admin_user, sym_code);
             //float balance = balance_asset.amount;
-            float balance = 0;
+            //float balance = 0;
 
             /*
         eosio::token t(N(eosio.token));
@@ -57,6 +56,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         const auto my_balance = t.get_balance(N(myaccount), sym_name );
         eosio::print("My balance is ", my_balance);
         */
+            /*
 
             request_multi_index requests = request_multi_index( get_self(), get_first_receiver().value);
             float sum_distance = 0;
@@ -86,6 +86,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                     }
                 }
             }
+            */
         }
 
         [[eosio::action]]
