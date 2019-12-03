@@ -1,4 +1,7 @@
 #include <eosio/eosio.hpp>
+#include "/opt/eosio.contracts/contracts/eosio.token/include/eosio.token/eosio.token.hpp"
+
+
 
 
 class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract {
@@ -26,6 +29,35 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         [[eosio::action]]
         void process() {
             require_auth(admin_user);
+            // get balance
+            // auto balance = eosio::token::get_balance(token_contract, token_holder_name, symbol_code);
+            //
+            /*
+         static asset get_balance( const name& token_contract_account, const name& owner, const symbol_code& sym_code )
+         {
+            accounts accountstable( token_contract_account, owner.value );
+            const auto& ac = accountstable.get( sym_code.raw() );
+            return ac.balance;
+         }
+/orgs/eos_detroit/42_trf_smart_contract/travelrefund/travelrefund.cpp:43:54: error: reference to type 'const eosio::name' could not bind to an lvalue of type 'const char [13]'
+            auto balance = eosio::token::get_balance("travelrefund", admin_user, "eosio.token");
+                                                     ^~~~~~~~~~~~~~
+                                               ^
+         */
+            const auto sym_code= eosio::symbol_code("EOS");
+            // assertion failure with message: only uppercase letters allowed in symbol_code string
+            //
+            eosio::asset balance_asset = eosio::token::get_balance(eosio::name("travelrefund"), admin_user, sym_code);
+            //float balance = balance_asset.amount;
+            float balance = 0;
+
+            /*
+        eosio::token t(N(eosio.token));
+        const auto sym_name = eosio::symbol_type(S(4,SYS)).name();
+        const auto my_balance = t.get_balance(N(myaccount), sym_name );
+        eosio::print("My balance is ", my_balance);
+        */
+
             request_multi_index requests = request_multi_index( get_self(), get_first_receiver().value);
             float sum_distance = 0;
             for (auto &item : requests) {
@@ -49,7 +81,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                             row.status 	            = "processing";
                             row.distance            = item.distance;
                             row.distance_percent    = item.distance/sum_distance;
-                            row.amount              = 0;
+                            row.amount              = balance * row.distance_percent;
                         });
                     }
                 }
