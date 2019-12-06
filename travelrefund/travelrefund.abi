@@ -4,6 +4,50 @@
     "types": [],
     "structs": [
         {
+            "name": "PayoutStruct",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "string"
+                },
+                {
+                    "name": "distance",
+                    "type": "int32"
+                },
+                {
+                    "name": "distance_percent",
+                    "type": "float32"
+                },
+                {
+                    "name": "amount",
+                    "type": "float32"
+                }
+            ]
+        },
+        {
+            "name": "RequestStruct",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "string"
+                },
+                {
+                    "name": "distance",
+                    "type": "int32"
+                }
+            ]
+        },
+        {
             "name": "approve",
             "base": "",
             "fields": [
@@ -26,6 +70,11 @@
                     "type": "name"
                 }
             ]
+        },
+        {
+            "name": "disburse",
+            "base": "",
+            "fields": []
         },
         {
             "name": "disclose",
@@ -43,32 +92,6 @@
             ]
         },
         {
-            "name": "payout_struct",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "status",
-                    "type": "string"
-                },
-                {
-                    "name": "distance",
-                    "type": "float32"
-                },
-                {
-                    "name": "distance_percent",
-                    "type": "float32"
-                },
-                {
-                    "name": "amount",
-                    "type": "float32"
-                }
-            ]
-        },
-        {
             "name": "process",
             "base": "",
             "fields": []
@@ -80,24 +103,6 @@
                 {
                     "name": "user",
                     "type": "name"
-                }
-            ]
-        },
-        {
-            "name": "request_struct",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "status",
-                    "type": "string"
-                },
-                {
-                    "name": "distance",
-                    "type": "int32"
                 }
             ]
         }
@@ -112,6 +117,11 @@
             "name": "create",
             "type": "create",
             "ricardian_contract": "---\nspec-version: 0.0.2\ntitle: Create\nsummary: create a new request\nicon:"
+        },
+        {
+            "name": "disburse",
+            "type": "disburse",
+            "ricardian_contract": ""
         },
         {
             "name": "disclose",
@@ -137,14 +147,14 @@
     "tables": [
         {
             "name": "payouts",
-            "type": "payout_struct",
+            "type": "PayoutStruct",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
         },
         {
             "name": "requests",
-            "type": "request_struct",
+            "type": "RequestStruct",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
