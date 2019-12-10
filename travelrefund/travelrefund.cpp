@@ -1,27 +1,66 @@
 #include <eosio/eosio.hpp>
+#include <eosio/permission.hpp>
 #include "/opt/eosio.contracts/contracts/eosio.token/include/eosio.token/eosio.token.hpp"
 
 
-
-// use for determining auto
-//template<typename T> struct TD;
-// put this after type:
-// TD<decltype(unknowntypehere)> td;
-
 class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract {
+    private:
+        eosio::name admin_user = eosio::name("trfadminuser");
+
+        // Request
+            struct [[eosio::table]] RequestStruct{
+                eosio::name user;
+                std::string status;
+                int distance;
+                uint64_t primary_key() const { return user.value; }
+            };
+
+            typedef eosio::multi_index<eosio::name("requests"), RequestStruct> RequestMultiIndex;
+            typedef eosio::multi_index<eosio::name("requests"), RequestStruct>::const_iterator RequestIterator;
+
+        // Payout
+            struct [[eosio::table]] PayoutStruct{
+                eosio::name user;
+                std::string status;
+                int distance;
+                float distance_percent; 
+                float amount;
+                uint64_t primary_key() const { return user.value; }
+            };
+            typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct> PayoutMultiIndex;
+            typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct>::const_iterator PayoutIterator;
+
+        // Log
+         /*
+            struct [[eosio::table]] LogStruct{
+                char message[40];
+                uint64_t primary_key() const { return message; }
+            };
+            */
+
+         //@todo(seth) delete this 
+		void log_(const char * memo_char) {
+			std::string memo{memo_char};
+			eosio::name contract_name{"travelrefund"};
+			eosio::action(
+				eosio::permission_level{contract_name, eosio::name{"active"}},
+				contract_name,
+				eosio::name{"log"},
+				std::make_tuple(memo)
+		   ).send();
+		}
+        
     public:
-        travelrefund(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : eosio::contract(self, first_receiver, ds) {
-        }
+        travelrefund(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : 
+            eosio::contract{self, first_receiver, ds} { }
 
 
         [[eosio::action]]
         void create ( eosio::name user) {
             require_auth( user);
-            RequestMultiIndex requests( get_self(), get_first_receiver().value );
-            print("Creating a new request for ", user);
+            RequestMultiIndex requests{ get_self(), get_first_receiver().value };
             RequestIterator iterator = requests.find(user.value);
 
-            //char test = iterator;
 			if( iterator == requests.end() ) {
 				requests.emplace(user, [&]( RequestStruct & row ) {
 					row.user = user;
@@ -34,70 +73,119 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 
         [[eosio::action]]
         void disburse() {
-            require_auth(admin_user);
-		  eosio::action transferTest = eosio::action(
-			  eosio::permission_level(eosio::name("trfadminuser"),eosio::name("active")),
-			  eosio::name("eosio.token"),
-			  eosio::name("transfer"),
-			  std::make_tuple("trfadminuser", "trfsoulbasis", "0.0001 EOS", "Hope you enjoyed Rio!")
-           );
-		  transferTest.send();
+            eosio::name from{"travelrefund"};
+            require_auth(from);
+
+            eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
+
+            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
+            char memo_raw[40];
+            eosio::transaction txn{};
+            for (const PayoutStruct &item : payouts) {
+                eosio::name to{item.user}; 
+                int64_t amount_number = (uint64_t)(item.amount*10000);
+                sprintf(memo_raw, "amount send %lld", amount_number);
+                std::string memo{memo_raw};
+                eosio::asset amount_to_send{800000,eos_symbol};
+                eosio::action transfer = eosio::action(
+                    eosio::permission_level{from, eosio::name{"active"}},
+                    eosio::name{"eosio.token"},
+                    eosio::name{"transfer"},
+                    std::make_tuple(from, to, amount_to_send, memo)
+               );
+                txn.actions.emplace_back(transfer);
+            }
+            txn.send(0, _self, false);
+            // this will run even if the transaction fails.
+            log_("Success! supposedly");
+        }
+
+        // this needs to be here for the internal _log to work
+        [[eosio::action]]
+        void log( std::string message) {
         }
 
         [[eosio::action]]
         void process() {
             require_auth(admin_user);
-            eosio::asset balance_asset = eosio::token::get_balance(eosio::name("eosio.token"),eosio::name("travelrefund"), eosio::symbol_code("EOS"));
-            int balance = balance_asset.amount;
-#if 1 
-            {
-                char balance_str[50];
-                sprintf(balance_str,"balance: %d", balance); 
 
-                RequestMultiIndex requests( get_self(), get_first_receiver().value );
-                RequestIterator iterator = requests.find(admin_user.value);
-                if( iterator == requests.end() ) {
-                    requests.emplace(admin_user, [&]( RequestStruct& row ) {
-                        row.user = admin_user;
-                        row.status 			= balance_str;
-                    });
-                } else {
-                    requests.modify(iterator, admin_user, [&]( RequestStruct& row ) {
-                        row.status 			= balance_str;
-                    });
-                }
-            }
-#endif
-
-
-            RequestMultiIndex requests = RequestMultiIndex( get_self(), get_first_receiver().value);
+            // get total distance
+            RequestMultiIndex requests = RequestMultiIndex(get_self(), get_first_receiver().value);
             int sum_distance = 0;
-            for (const RequestStruct &item : requests) {
-                if (item.status == "approved") {
-                    sum_distance += item.distance;
+			int approved_request_count = 0;
+            for (const RequestStruct &request_item : requests) {
+                if (request_item.status == "approved") {
+                    sum_distance += request_item.distance;
+					++approved_request_count;
                 }
             }
-            eosio::print("[sum_distance:    ",  sum_distance);
+
+            // get balance
+            int64_t contract_balance = 0;
+            {
+                eosio::asset balance_asset = eosio::token::get_balance(
+                        eosio::name{"eosio.token"},
+                        eosio::name{"travelrefund"}, 
+                        eosio::symbol_code{"EOS"}
+                );
+                contract_balance = balance_asset.amount;
+
+				// log
+				char memo_char[40];
+				sprintf(memo_char,"balance: %lld", (long long)contract_balance); 
+				log_(memo_char);
+            }
+
+
+            // a little struct to extract what we need from the request table
+            struct RequestForPayout{ // 16 bytes
+                eosio::name user;  // 8 bytes
+                int distance; // 4 bytes
+            };
+
+			// Note: if max_requests is too big, this will crash deployment with a memory violation
+			// 3,000,000 RequestForPayouts = 36,000,000 bytes = failed to allocate pages
+			eosio::check(approved_request_count < (int)(33600000 /sizeof(RequestForPayout)), "too many approved requests, won't be able to allocate memory");
+            RequestForPayout * approved_requests = (RequestForPayout *)malloc(approved_request_count * sizeof(RequestForPayout));
+
+            int request_for_payout_count= 0;
+            for (const RequestStruct &request_item : requests) {
+                // erase payout if exists
+                if (request_item.status == "approved") {
+                    int request_idx = request_for_payout_count;
+                    approved_requests[request_idx].user = request_item.user;
+                    approved_requests[request_idx].distance = request_item.distance;
+                    ++request_idx;
+                    // error out if we pass max_requests_for_payout 
+                    eosio::check(request_idx <= approved_request_count, "approved count is greater somehow!");
+                    request_for_payout_count = request_idx;
+					// I could inline the payout code here, but by moving it out, it's clearer
+					// easier to build on, and we can iterate through it for updating the requests 
+					// table
+
+                } // approved
+            } // for
+
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
 
+
+            // clear out payout table
             for(PayoutIterator itr = payouts.begin(); itr != payouts.end();) {
                 itr = payouts.erase(itr);
             }
-            // clear out the payout table
-            for (const RequestStruct &item : requests) {
-                // erase payout if exists
-                if (item.status == "approved") {
-                auto payout_found = payouts.find(item.user.value);
-                    if (payout_found == payouts.end()) {
 
-                        payouts.emplace(admin_user, [&]( PayoutStruct& row ) {
-                            row.user                = item.user;
-                            row.status 	            = "processing";
-                            row.distance            = item.distance;
-                            row.distance_percent    = (float) item.distance / sum_distance;
-                            row.amount              = balance * row.distance_percent;
-                        });
-                    }
+            // add approved requests to payout
+            for (int request_idx = 0; request_idx < request_for_payout_count; ++request_idx) {
+                RequestForPayout *approved_request = &approved_requests[request_idx];
+                PayoutIterator payout_found = payouts.find(approved_request->user.value);
+                if (payout_found == payouts.end()) {
+                    payouts.emplace(admin_user, [&]( PayoutStruct& row ) {
+                        row.user                = approved_request->user;
+                        row.status 	            = "processing";
+                        row.distance            = approved_request->distance;
+                        row.distance_percent    = (float) approved_request->distance / sum_distance;
+                        row.amount              = contract_balance * row.distance_percent;
+                    });
                 }
             }
         }
@@ -106,11 +194,10 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         void approve(eosio::name user, int distance) {
             require_auth(admin_user);
             if (distance > 0){
-                print("Approve request for ", user);
-                RequestMultiIndex requests( get_self(), get_first_receiver().value);
-                RequestIterator iterator = requests.find(user.value);
-                if (iterator != requests.end()) {
-                    requests.modify(iterator, admin_user, [&]( RequestStruct& row ) {
+                RequestMultiIndex requests{ get_self(), get_first_receiver().value};
+                RequestIterator request_iterator = requests.find(user.value);
+                if (request_iterator != requests.end()) {
+                    requests.modify(request_iterator, admin_user, [&]( RequestStruct& row ) {
                         row.status 			= "approved";
                         row.distance        = distance;
                     });
@@ -126,11 +213,10 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         [[eosio::action]]
         void reject ( eosio::name user) {
             require_auth(admin_user);
-            print("reject request for ", user);
-			RequestMultiIndex requests( get_self(), get_first_receiver().value);
-			RequestIterator iterator = requests.find(user.value);
-			if (iterator != requests.end()) {
-				requests.modify(iterator, admin_user, [&]( RequestStruct& row ) {
+			RequestMultiIndex requests{get_self(), get_first_receiver().value};
+			RequestIterator request_iterator = requests.find(user.value);
+			if (request_iterator != requests.end()) {
+				requests.modify(request_iterator, admin_user, [&]( RequestStruct& row ) {
 					row.status 			= "rejected";
 				});
 			} else {
@@ -141,57 +227,14 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         [[eosio::action]]
         void erase( eosio::name user) {
             require_auth(admin_user);
-            print("erase request for ", user);
-			RequestMultiIndex requests( get_self(), get_first_receiver().value);
-
-			RequestIterator iterator = requests.find(user.value);
-			if (iterator != requests.end()) {
-				requests.erase(iterator);
+			RequestMultiIndex requests{get_self(), get_first_receiver().value};
+			RequestIterator request_iterator = requests.find(user.value);
+			if (request_iterator != requests.end()) {
+				requests.erase(request_iterator);
 			} else {
 				printf("user not found (already erased?)");
 			}
         }
 
-        // @todo(seth) this seems like disburse right?
-        [[eosio::action]]
-        void disclose( ) {
-            require_auth(admin_user);
-            printf("Checking to see if any funds are not yet approved or rejected");
-			/*
-			auto iterator = requests.find(user.value);
-			if (iterator != requests.end()) {
-				requests.emplace(user, [&]( auto& row ) {
-					row.status 			= "approved";
-				});
-			} else {
-				printf("user not found");
-			}
-			*/
-            printf("None found");
-            printf("Disclose all funds");
-        }
-    private:
-        eosio::name admin_user = eosio::name("trfadminuser");
-        struct [[eosio::table]] RequestStruct{
-            eosio::name user;
-            std::string status;
-            int distance;
-            uint64_t primary_key() const { return user.value; }
-        };
-
-        typedef eosio::multi_index<eosio::name("requests"), RequestStruct> RequestMultiIndex;
-        typedef eosio::multi_index<eosio::name("requests"), RequestStruct>::const_iterator RequestIterator;
-
-        struct [[eosio::table]] PayoutStruct{
-            eosio::name user;
-            std::string status;
-            int distance;
-            float distance_percent; 
-            float amount;
-            uint64_t primary_key() const { return user.value; }
-        };
-        typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct> PayoutMultiIndex;
-        typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct>::const_iterator PayoutIterator;
-        
 };
 

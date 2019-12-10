@@ -1,5 +1,11 @@
 
-set -e 
+myfunc() {
+	print_time_passed
+	exit
+}
+
+trap 'myfunc' ERR
+
 
 
 clear && printf '\e[3J'
@@ -25,6 +31,7 @@ function print_help () {
 	echo "-u unlock wallet"
 	echo "-b build"
 	echo "-t test"
+	echo "-a run through all"
 } 
 
 start=0
@@ -32,6 +39,13 @@ unlock=0
 build=0
 run_test=0
 
+change_permission=0
+set_contract=1
+erase=0
+create=0
+approve=0
+process=1
+disburse=1
 
 if [ $# -eq 0 ]; then
 	print_help
@@ -39,12 +53,19 @@ if [ $# -eq 0 ]; then
     set -- $REPLY
 fi
 
-while getopts ":nubt" opt; do
+while getopts ":nubta" opt; do
   case ${opt} in
 	n ) start=1 ;;
 	u ) unlock=1 ;;
 	b ) build=1 ;;
 	t ) run_test=1 ;;
+    a ) 
+        build=1
+        erase=1
+        create=1
+        approve=1
+        process=1
+        disburse=1;;
 	\? ) print_help; exit 1 ;;
   esac
 done
@@ -62,6 +83,8 @@ fi
 if [ $start = 1 ]; then
 	print_heading "starting node"
     nodeos -e -p eosio \
+        --delete-all-blocks \
+        --hard-replay \
         --plugin eosio::producer_plugin \
         --plugin eosio::chain_api_plugin \
         --plugin eosio::http_plugin \
@@ -71,7 +94,8 @@ if [ $start = 1 ]; then
         --access-control-allow-origin='*' \
         --contracts-console \
         --http-validate-host=false \
-        --verbose-http-errors >> /dev/null 2>&1 &
+        --verbose-http-errors 
+    exit
 fi
 
 if [ $build = 1 ]; then
@@ -89,42 +113,48 @@ fi
 
 
 domain="https://api.jungle.alohaeos.com"
+domain="https://jungle2.cryptolions.io"
 #domain="http://localhost:8888"
 ADMIN_USERNAME="trfadminuser"
-if [ 0 = 1 ]; then
+
+if [ $change_permission = 1 ]; then
     cleos -u $domain set account permission travelrefund active --add-code
 fi
 
-
-if [ 1 = 1 ]; then
+if [ $set_contract = 1 ]; then
     print_heading "set contract"
 	cleos -u $domain set contract travelrefund . -p travelrefund@active
 fi
 
-if [ 1 = 1 ]; then
+if [ $erase = 1 ]; then
     print_heading "erase"
 	cleos -u $domain push action travelrefund erase '["trfadminuser"]' -p trfadminuser@active
 	cleos -u $domain push action travelrefund erase '["trfsourbasis"]' -p trfadminuser@active
 	cleos -u $domain push action travelrefund erase '["trftidyfairy"]' -p trfadminuser@active
 fi
-if [ 1 = 1 ]; then
+
+
+if [ $create = 1 ]; then
     print_heading "create"
 	cleos -u $domain push action travelrefund create '["trfadminuser"]' -p trfadminuser@active
 	cleos -u $domain push action travelrefund create '["trftidyfairy"]' -p trftidyfairy@active
 	cleos -u $domain push action travelrefund create '["trfsourbasis"]' -p trfsourbasis@active
-	cleos -u $domain push action travelrefund approve '["trftidyfairy", 60]' -p trfadminuser@active
-	cleos -u $domain push action travelrefund approve '["trfsourbasis", 40]' -p trfadminuser@active
 	#cleos -u $domain push action travelrefund reject '["trftidyfairy"]' -p trfadminuser@active
 	#cleos push action travelrefund disclose '[]' -p trfsourbasis@active
 fi
-if [ 1 = 1 ]; then
+if [ $approve = 1 ]; then
+    print_heading "approve"
+	cleos -u $domain push action travelrefund approve '["trftidyfairy", 60]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund approve '["trfsourbasis", 40]' -p trfadminuser@active
+fi
+if [ $process = 1 ]; then
     print_heading "process"
 	cleos -u $domain push action travelrefund process '[]' -p trfadminuser@active
 fi
 
-if [ 0 = 1 ]; then
+if [ $disburse = 1 ]; then
     print_heading "disburse"
-	cleos -u $domain push action travelrefund disburse '[]' -p trfadminuser@active
+	cleos -u $domain push action travelrefund disburse '[]' -p travelrefund@active
 fi
 
 if [ 1 = 1 ]; then

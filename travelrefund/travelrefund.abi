@@ -77,17 +77,22 @@
             "fields": []
         },
         {
-            "name": "disclose",
-            "base": "",
-            "fields": []
-        },
-        {
             "name": "erase",
             "base": "",
             "fields": [
                 {
                     "name": "user",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "log",
+            "base": "",
+            "fields": [
+                {
+                    "name": "message",
+                    "type": "string"
                 }
             ]
         },
@@ -124,14 +129,14 @@
             "ricardian_contract": ""
         },
         {
-            "name": "disclose",
-            "type": "disclose",
-            "ricardian_contract": "---\nspec-version: 0.0.2\ntitle: Disclose \nsummary: Admin discloses funds to all approved users based on distance travelled."
-        },
-        {
             "name": "erase",
             "type": "erase",
             "ricardian_contract": "---\nspec-version: 0.0.2\ntitle: Erase \nsummary: Admin erases a request, so user can resubmit again."
+        },
+        {
+            "name": "log",
+            "type": "log",
+            "ricardian_contract": ""
         },
         {
             "name": "process",
