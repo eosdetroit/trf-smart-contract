@@ -86,7 +86,8 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                 int64_t amount_number = (uint64_t)(item.amount*10000);
                 sprintf(memo_raw, "amount send %lld", amount_number);
                 std::string memo{memo_raw};
-                eosio::asset amount_to_send{800000,eos_symbol};
+                //eosio::asset amount_to_send{800000,eos_symbol};
+                eosio::asset amount_to_send{amount_number,eos_symbol};
                 eosio::action transfer = eosio::action(
                     eosio::permission_level{from, eosio::name{"active"}},
                     eosio::name{"eosio.token"},
