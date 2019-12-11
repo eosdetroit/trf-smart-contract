@@ -1,7 +1,7 @@
 
 # Tables
 
-Requests
+**Requests**
 
 ```
     eosio::name user; // primary key
@@ -9,7 +9,7 @@ Requests
     int distance;
 ```
 
-Payouts
+**Payouts**
 
 ```
     eosio::name user; // primary key
@@ -21,7 +21,7 @@ Payouts
 
 # Actions
 
-Create
+**Create**
 
 > Create a new request. Anyone can do this.
 > This is done through trf.eosdetroit.io, for conference attendees.
@@ -32,7 +32,7 @@ Create
     void create ( eosio::name user)
 ```
 
-Approve
+**Approve**
 
 > Approve an attendee for a certain distance. This can only be done by the admin user.
 > trf.eosdetroit.io provides the interface for this, for the admin.
@@ -43,7 +43,9 @@ Approve
     void approve(eosio::name user, int distance)
 ```
 
-Reject
+
+
+**Reject**
 
 > Admin can use this action to reject a spammer, or otherwise invalid account.
 > Updates Requests (status = "rejected")
@@ -52,7 +54,9 @@ Reject
     void reject ( eosio::name user)
 ```
 
-Process
+
+
+**Process**
 
 > Admin user runs this to generate the Payouts table for verifiation
 > Should only be run after all approvals have been made. 
@@ -66,7 +70,9 @@ Process
     void process() 
 ```
 
-Disburse
+
+
+**Disburse**
 
 > Admin runs this after Payouts table has been verified as correct.
 > Loops through and pays out the amount noted in "amount" in the Payouts table.
@@ -78,7 +84,9 @@ Disburse
 
 ```
 
-Erase
+
+
+**Erase**
 
 > Admin can use this action to erase a user from Requests. 
 > Usually used to iterate through and clear out a table for debugging, or individual test users.
@@ -89,7 +97,9 @@ Erase
     void erase( eosio::name user)
 ```
 
-Complete
+
+
+**Complete**
 
 > Admin can use this action to mark a user as paid. This would only be done after manual verification.
 > Updates Payouts (status="paid")
@@ -100,7 +110,8 @@ Complete
     void complete( eosio::name user) {
 ```
 
-Log 
+
+**Log **
 
 > Used in the contract as an inline action for debugging only
 > Allows us to verify amount being sent is correct, by reading bloks.io
