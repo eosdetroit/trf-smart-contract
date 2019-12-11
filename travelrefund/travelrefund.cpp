@@ -69,7 +69,6 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 
             eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
 
-            // @Todo(seth): do not disburse to anyone with a status of paid
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
             char memo_raw[40];
             eosio::transaction txn{};
