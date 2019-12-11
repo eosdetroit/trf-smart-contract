@@ -30,6 +30,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
             typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct> PayoutMultiIndex;
             typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct>::const_iterator PayoutIterator;
 
+        // for debugging
 		void log_(const char * memo_char) {
 			std::string memo{memo_char};
 			eosio::name contract_name{"travelrefund"};
@@ -45,6 +46,11 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         travelrefund(eosio::name self, eosio::name first_receiver, eosio::datastream<const char *> ds) : 
             eosio::contract{self, first_receiver, ds} { }
 
+        // this needs to be here for the internal _log to work
+        [[eosio::action]]
+        void log( std::string message) {
+            // this function intentionally left blank
+        }
 
         [[eosio::action]]
         void create ( eosio::name user) {
@@ -62,41 +68,27 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 			}
         }
 
+
         [[eosio::action]]
-        void disburse() {
-            eosio::name from{"travelrefund"};
-            require_auth(from);
-
-            eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
-
-            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
-            char memo_raw[40];
-            eosio::transaction txn{};
-            for (const PayoutStruct &item : payouts) {
-                if (item.status == "processing") {
-                    eosio::name to{item.user}; 
-                    sprintf(memo_raw, "amount send %lld", item.amount);
-                    std::string memo{memo_raw};
-                    //eosio::asset amount_to_send{0,eos_symbol};
-                    eosio::asset amount_to_send{item.amount,eos_symbol};
-                    eosio::action transfer = eosio::action(
-                        eosio::permission_level{from, eosio::name{"active"}},
-                        eosio::name{"eosio.token"},
-                        eosio::name{"transfer"},
-                        std::make_tuple(from, to, amount_to_send, memo)
-                   );
-                   txn.actions.emplace_back(transfer);
+        void approve(eosio::name user, int distance) {
+            require_auth(admin_user);
+            if (distance > 0){
+                RequestMultiIndex requests{ get_self(), get_first_receiver().value};
+                RequestIterator request_iterator = requests.find(user.value);
+                if (request_iterator != requests.end()) {
+                    requests.modify(request_iterator, admin_user, [&]( RequestStruct& row ) {
+                        row.status 			= "approved";
+                        row.distance        = distance;
+                    });
+                } else {
+                    printf("\nuser not found\n");
                 }
+            } else {
+                printf("distance must be greater than zero");
             }
-            txn.send(0, _self, false);
-            // this will run even if the transaction fails.
         }
 
-        // this needs to be here for the internal _log to work
-        [[eosio::action]]
-        void log( std::string message) {
-            // this function intentionally left blank
-        }
+
 
         [[eosio::action]]
         void process() {
@@ -180,11 +172,13 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                         double percent          = ((double) approved_request->distance / sum_distance) * 100;
                         total_percent          += percent;
                         row.distance_percent    = percent;
-                        // Note: not rounding. amount gets cut off here
-                        //int64_t amount          = contract_balance * (row.distance_percent/ 100);
-                        // rounded version
                         double percent_decimal = row.distance_percent / 100;
-                        int64_t amount          = (int64_t)(contract_balance * percent_decimal + 0.5); 
+                        // rounded version
+                        // don't use: int64_t amount          = (int64_t)(contract_balance * percent_decimal + 0.5); 
+                        // Note: not rounding. amount gets cut off here.
+                        // Without this, you can get greater than 100%, which will total greater
+                        // the balance of the contract account, causing a silent failure
+                        int64_t amount          = (int64_t)(contract_balance * (row.distance_percent/ 100));
                         total_amount           += amount;
                         row.amount              = amount;
                     });
@@ -206,24 +200,34 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         }
 
         [[eosio::action]]
-        void approve(eosio::name user, int distance) {
-            require_auth(admin_user);
-            if (distance > 0){
-                RequestMultiIndex requests{ get_self(), get_first_receiver().value};
-                RequestIterator request_iterator = requests.find(user.value);
-                if (request_iterator != requests.end()) {
-                    requests.modify(request_iterator, admin_user, [&]( RequestStruct& row ) {
-                        row.status 			= "approved";
-                        row.distance        = distance;
-                    });
-                } else {
-                    printf("\nuser not found\n");
-                }
-            } else {
-                printf("distance must be greater than zero");
-            }
-        }
+        void disburse() {
+            eosio::name from{"travelrefund"};
+            require_auth(from);
 
+            eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
+
+            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
+            char memo_raw[40];
+            eosio::transaction txn{};
+            for (const PayoutStruct &item : payouts) {
+                if (item.status == "processing") {
+                    eosio::name to{item.user}; 
+                    sprintf(memo_raw, "amount send %lld", item.amount);
+                    std::string memo{memo_raw};
+                    //eosio::asset amount_to_send{0,eos_symbol};
+                    eosio::asset amount_to_send{item.amount,eos_symbol};
+                    eosio::action transfer = eosio::action(
+                        eosio::permission_level{from, eosio::name{"active"}},
+                        eosio::name{"eosio.token"},
+                        eosio::name{"transfer"},
+                        std::make_tuple(from, to, amount_to_send, memo)
+                   );
+                   txn.actions.emplace_back(transfer);
+                }
+            }
+            txn.send(0, _self, false);
+            // this will run even if the transaction fails.
+        }
 
         [[eosio::action]]
         void reject ( eosio::name user) {
@@ -255,7 +259,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
             }
 
 #if 0
-            // clear out payout table
+            // clear out payout table, probably only want to do this when testing
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
 			PayoutIterator payout_iterator = payouts.find(user.value);
             if (payout_iterator != payouts.end()) {
@@ -270,7 +274,6 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         void complete( eosio::name user) {
             require_auth(admin_user);
 
-            // clear out request table
             {
                 RequestMultiIndex requests{get_self(), get_first_receiver().value};
                 RequestIterator request_iterator = requests.find(user.value);
@@ -283,7 +286,6 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                 }
             }
 
-            // clear out payout table
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
 			PayoutIterator payout_iterator = payouts.find(user.value);
             if (payout_iterator != payouts.end()) {

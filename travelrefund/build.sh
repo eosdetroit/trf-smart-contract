@@ -40,7 +40,6 @@ build=0
 run_test=0
 
 change_permission=0
-set_contract=1
 erase=1
 create=1
 approve=1
@@ -105,11 +104,11 @@ if [ $build = 1 ]; then
 	print_time_passed
 fi
 
+
 if [ $unlock = 1 ]; then
 	print_heading "Unlock cleos wallet"
 	cleos wallet unlock 
 fi
-
 
 
 domain="https://api.jungle.alohaeos.com"
@@ -121,31 +120,49 @@ if [ $change_permission = 1 ]; then
     cleos -u $domain set account permission travelrefund active --add-code
 fi
 
-if [ $set_contract = 1 ]; then
+if [ $build = 1 ]; then
     print_heading "set contract"
 	cleos -u $domain set contract travelrefund . -p travelrefund@active
 fi
 
+
+user_accounts=("trftidyfairy" "trfsourbasis" "wittyurgency" "vaininventor" "offbeatgauge" "niftysuccess" "richmovement" "shabbyintent" "smoggyoutlet" "smoothschool" "spicycharity" "tenderwinter" )
+user_count=12
+
+
+# Create random distances
+RANDOM=1 # seed
+distances=()
+print_heading "test users"
+for (( i=0; i < $user_count; ++i )); do
+    distances+=( $RANDOM )
+    printf "${user_accounts[i]} \t ${distances[i]}\n"
+done
+
 if [ $erase = 1 ]; then
     print_heading "erase"
-	cleos -u $domain push action travelrefund erase '["trfadminuser"]' -p trfadminuser@active
-	cleos -u $domain push action travelrefund erase '["trfsourbasis"]' -p trfadminuser@active
-	cleos -u $domain push action travelrefund erase '["trftidyfairy"]' -p trfadminuser@active
+    for user in ${user_accounts[@]}; do 
+        echo
+        cleos -u $domain push action travelrefund erase "[\"${user}\"]" -p trfadminuser@active
+    done
 fi
 
 
 if [ $create = 1 ]; then
     print_heading "create"
-	cleos -u $domain push action travelrefund create '["trfadminuser"]' -p trfadminuser@active
-	cleos -u $domain push action travelrefund create '["trftidyfairy"]' -p trftidyfairy@active
-	cleos -u $domain push action travelrefund create '["trfsourbasis"]' -p trfsourbasis@active
-	#cleos -u $domain push action travelrefund reject '["trftidyfairy"]' -p trfadminuser@active
-	#cleos push action travelrefund disclose '[]' -p trfsourbasis@active
+    for user in ${user_accounts[@]}; do 
+        echo
+        cleos -u $domain push action travelrefund create "[\"${user}\"]" -p ${user}@active
+    done
 fi
 if [ $approve = 1 ]; then
     print_heading "approve"
-	cleos -u $domain push action travelrefund approve '["trftidyfairy", 60]' -p trfadminuser@active
-	cleos -u $domain push action travelrefund approve '["trfsourbasis", 40]' -p trfadminuser@active
+    for idx in ${!user_accounts[@]}; do 
+        username=${user_accounts[idx]}
+        distance=${distances[idx]}
+        echo
+        cleos -u $domain push action travelrefund approve "[\"${username}\", ${distance}], " -p trfadminuser@active
+    done
 fi
 if [ $process = 1 ]; then
     print_heading "process"
@@ -159,7 +176,10 @@ fi
 
 if [ $complete = 1 ]; then
     print_heading "complete"
-	cleos -u $domain push action travelrefund complete '[trfsourbasis]' -p trfadminuser@active
+    for user in ${user_accounts[@]}; do 
+        echo
+        cleos -u $domain push action travelrefund complete "[\"${user}\"]" -p trfadminuser@active
+    done
 fi
 
 if [ 1 = 1 ]; then
