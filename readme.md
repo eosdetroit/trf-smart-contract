@@ -111,7 +111,7 @@
 ```
 
 
-**Log **
+**Log**
 
 > Used in the contract as an inline action for debugging only
 > Allows us to verify amount being sent is correct, by reading bloks.io
