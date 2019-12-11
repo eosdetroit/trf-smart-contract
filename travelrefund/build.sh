@@ -44,8 +44,9 @@ set_contract=1
 erase=0
 create=0
 approve=0
-process=1
+process=0
 disburse=1
+complete=0
 
 if [ $# -eq 0 ]; then
 	print_help
@@ -155,6 +156,11 @@ fi
 if [ $disburse = 1 ]; then
     print_heading "disburse"
 	cleos -u $domain push action travelrefund disburse '[]' -p travelrefund@active
+fi
+
+if [ $complete = 1 ]; then
+    print_heading "complete"
+	cleos -u $domain push action travelrefund complete '[trfsourbasis]' -p trfadminuser@active
 fi
 
 if [ 1 = 1 ]; then

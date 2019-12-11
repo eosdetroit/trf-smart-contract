@@ -23,22 +23,13 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                 eosio::name user;
                 std::string status;
                 int distance;
-                float distance_percent; 
-                float amount;
+                double distance_percent; 
+                int64_t amount;
                 uint64_t primary_key() const { return user.value; }
             };
             typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct> PayoutMultiIndex;
             typedef eosio::multi_index<eosio::name("payouts"), PayoutStruct>::const_iterator PayoutIterator;
 
-        // Log
-         /*
-            struct [[eosio::table]] LogStruct{
-                char message[40];
-                uint64_t primary_key() const { return message; }
-            };
-            */
-
-         //@todo(seth) delete this 
 		void log_(const char * memo_char) {
 			std::string memo{memo_char};
 			eosio::name contract_name{"travelrefund"};
@@ -78,32 +69,34 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 
             eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
 
+            // @Todo(seth): do not disburse to anyone with a status of paid
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
             char memo_raw[40];
             eosio::transaction txn{};
             for (const PayoutStruct &item : payouts) {
-                eosio::name to{item.user}; 
-                int64_t amount_number = (uint64_t)(item.amount*10000);
-                sprintf(memo_raw, "amount send %lld", amount_number);
-                std::string memo{memo_raw};
-                //eosio::asset amount_to_send{800000,eos_symbol};
-                eosio::asset amount_to_send{amount_number,eos_symbol};
-                eosio::action transfer = eosio::action(
-                    eosio::permission_level{from, eosio::name{"active"}},
-                    eosio::name{"eosio.token"},
-                    eosio::name{"transfer"},
-                    std::make_tuple(from, to, amount_to_send, memo)
-               );
-                txn.actions.emplace_back(transfer);
+                if (item.status == "processing") {
+                    eosio::name to{item.user}; 
+                    sprintf(memo_raw, "amount send %lld", item.amount);
+                    std::string memo{memo_raw};
+                    //eosio::asset amount_to_send{0,eos_symbol};
+                    eosio::asset amount_to_send{item.amount,eos_symbol};
+                    eosio::action transfer = eosio::action(
+                        eosio::permission_level{from, eosio::name{"active"}},
+                        eosio::name{"eosio.token"},
+                        eosio::name{"transfer"},
+                        std::make_tuple(from, to, amount_to_send, memo)
+                   );
+                   txn.actions.emplace_back(transfer);
+                }
             }
             txn.send(0, _self, false);
             // this will run even if the transaction fails.
-            log_("Success! supposedly");
         }
 
         // this needs to be here for the internal _log to work
         [[eosio::action]]
         void log( std::string message) {
+            // this function intentionally left blank
         }
 
         [[eosio::action]]
@@ -133,7 +126,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 
 				// log
 				char memo_char[40];
-				sprintf(memo_char,"balance: %lld", (long long)contract_balance); 
+				sprintf(memo_char,"contract_balance: %lld", (long long)contract_balance); 
 				log_(memo_char);
             }
 
@@ -167,15 +160,16 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                 } // approved
             } // for
 
-            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
-
-
             // clear out payout table
+            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
             for(PayoutIterator itr = payouts.begin(); itr != payouts.end();) {
                 itr = payouts.erase(itr);
             }
 
+
             // add approved requests to payout
+            double total_percent = 0;
+            int64_t total_amount = 0;
             for (int request_idx = 0; request_idx < request_for_payout_count; ++request_idx) {
                 RequestForPayout *approved_request = &approved_requests[request_idx];
                 PayoutIterator payout_found = payouts.find(approved_request->user.value);
@@ -184,10 +178,27 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                         row.user                = approved_request->user;
                         row.status 	            = "processing";
                         row.distance            = approved_request->distance;
-                        row.distance_percent    = (float) approved_request->distance / sum_distance;
-                        row.amount              = contract_balance * row.distance_percent;
+                        double percent          = ((double) approved_request->distance / sum_distance) * 100;
+                        total_percent          += percent;
+                        row.distance_percent    = percent;
+                        int64_t amount          = contract_balance * (row.distance_percent/ 100);
+                        total_amount           += amount;
+                        row.amount              = amount;
                     });
                 }
+            }
+
+            // log total percent to confirm nothing weird is happening
+            {
+                char memo_char[60];
+                sprintf(memo_char,"total_percent: %f", total_percent); 
+                log_(memo_char);
+            }
+            // log total amount to confirm nothing weird is happening
+            {
+                char memo_char[60];
+                sprintf(memo_char,"total_amount: %lld", total_amount); 
+                log_(memo_char);
             }
         }
 
@@ -228,13 +239,57 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
         [[eosio::action]]
         void erase( eosio::name user) {
             require_auth(admin_user);
-			RequestMultiIndex requests{get_self(), get_first_receiver().value};
-			RequestIterator request_iterator = requests.find(user.value);
-			if (request_iterator != requests.end()) {
-				requests.erase(request_iterator);
-			} else {
-				printf("user not found (already erased?)");
-			}
+
+            // clear out request table
+            {
+                RequestMultiIndex requests{get_self(), get_first_receiver().value};
+                RequestIterator request_iterator = requests.find(user.value);
+                if (request_iterator != requests.end()) {
+                    requests.erase(request_iterator);
+                } else {
+                    printf("user not found (already erased?)");
+                }
+            }
+
+#if 0
+            // clear out payout table
+            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
+			PayoutIterator payout_iterator = payouts.find(user.value);
+            if (payout_iterator != payouts.end()) {
+                payouts.erase(payout_iterator);
+            } else {
+                printf("user not found (already erased?)");
+            }
+#endif
+        }
+
+        [[eosio::action]]
+        void complete( eosio::name user) {
+            require_auth(admin_user);
+
+            // clear out request table
+            {
+                RequestMultiIndex requests{get_self(), get_first_receiver().value};
+                RequestIterator request_iterator = requests.find(user.value);
+                if (request_iterator != requests.end()) {
+                    requests.modify(request_iterator, admin_user, [&]( RequestStruct& row ) {
+                        row.status 			= "paid";
+                    });
+                } else {
+                    printf("user not found (already erased?)");
+                }
+            }
+
+            // clear out payout table
+            PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
+			PayoutIterator payout_iterator = payouts.find(user.value);
+            if (payout_iterator != payouts.end()) {
+                payouts.modify(payout_iterator, admin_user, [&]( PayoutStruct& row ) {
+                    row.status 			= "paid";
+                });
+            } else {
+                printf("user not found (already erased?)");
+            }
         }
 
 };
