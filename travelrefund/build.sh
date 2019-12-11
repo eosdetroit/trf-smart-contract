@@ -41,12 +41,12 @@ run_test=0
 
 change_permission=0
 set_contract=1
-erase=0
-create=0
-approve=0
-process=0
+erase=1
+create=1
+approve=1
+process=1
 disburse=1
-complete=0
+complete=1
 
 if [ $# -eq 0 ]; then
 	print_help
@@ -75,8 +75,7 @@ START=$(date +%s);
 
 if [ $run_test = 1 ]; then
 	print_heading "running test"
-    gcc -o exec_test test.cpp
-    ./exec_test
+    ./test.cpp
     print_time_passed
     exit
 fi

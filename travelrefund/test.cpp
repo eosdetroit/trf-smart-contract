@@ -26,14 +26,14 @@ int main() {
     for (int i = 0; i < distance_count; ++i) {
         double percent = (double)distances[i] / total_distance * 100;
         total_percent += percent;
-        double rounded = ((int)(percent * 1000.0))/1000.0;
+        double rounded = (int)(percent +0.5);
         printf("%d %.20f %.20f\n", distances[i], percent, rounded);
     }
     printf("total percent %20f\n", total_percent);
     printf("common\n");
 
     double percent = 0;
-    printf("normal, 15, 30, 60 \n", percent, percent);
+    printf("normal, 15, 30, 60 \n");
     for (int i = 0; i < 20; ++i) {
         percent += 5;
         printf("%.2f, %.15f, %.30f, %.60f \n", 

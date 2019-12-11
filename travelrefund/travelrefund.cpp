@@ -180,7 +180,11 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                         double percent          = ((double) approved_request->distance / sum_distance) * 100;
                         total_percent          += percent;
                         row.distance_percent    = percent;
-                        int64_t amount          = contract_balance * (row.distance_percent/ 100);
+                        // Note: not rounding. amount gets cut off here
+                        //int64_t amount          = contract_balance * (row.distance_percent/ 100);
+                        // rounded version
+                        double percent_decimal = row.distance_percent / 100;
+                        int64_t amount          = (int64_t)(contract_balance * percent_decimal + 0.5); 
                         total_amount           += amount;
                         row.amount              = amount;
                     });
