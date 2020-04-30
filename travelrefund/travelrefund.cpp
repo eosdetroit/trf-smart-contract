@@ -141,7 +141,7 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
                     approved_requests[request_idx].user = request_item.user;
                     approved_requests[request_idx].distance = request_item.distance;
                     ++request_idx;
-                    // error out if we pass max_requests_for_payout 
+                    // error out if we pass max_requests_for_payout
                     eosio::check(request_idx <= approved_request_count, "approved count is greater somehow!");
                     request_for_payout_count = request_idx;
 					// I could inline the payout code here, but by moving it out, it's clearer
