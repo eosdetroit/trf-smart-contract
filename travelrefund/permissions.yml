@@ -1,0 +1,27 @@
+---
+threshold: 3
+accounts:
+- permission:
+    actor: eos42freedom
+    permission: acitve
+  weight: 1
+- permission:
+    actor: eosio.code
+    permission: active
+  weight: 3
+- permission:
+    actor: eosiodetroit
+    permission: acitve
+  weight: 1
+- permission:
+    actor: eosnationftw
+    permission: acitve
+  weight: 1
+- permission:
+    actor: eosriobrazil
+    permission: acitve
+  weight: 1
+- permission:
+    actor: sheos21sheos
+    permission: acitve
+  weight: 1

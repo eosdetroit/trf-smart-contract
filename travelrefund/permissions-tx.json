@@ -1,0 +1,25 @@
+{"chain_id":"aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
+  "expiration": "2020-09-16T16:03:17",
+  "ref_block_num": 35822,
+  "ref_block_prefix": 2846072336,
+  "max_net_usage_words": 0,
+  "max_cpu_usage_ms": 0,
+  "delay_sec": 0,
+  "context_free_actions": [],
+  "actions": [
+    {
+      "account": "eosio",
+      "name": "updateauth",
+      "authorization": [
+        {
+          "actor": "travelrefund",
+          "permission": "active"
+        }
+      ],
+      "data": "90a65eea46b5cdcd00000000a8ed32320000000080ab26a7030000000006206952ea2e41305500000000a89d1d32010000804a1401ea305500000000a8ed32320300901dbd5925ea305500000000a89d1d320100c0f39ad46533315500000000a89d1d32010010dd37f75077315500000000a89d1d32010080a96a38084c55c300000000a89d1d32010000"
+    }
+  ],
+  "transaction_extensions": [],
+  "signatures": [],
+  "context_free_data": []
+}
