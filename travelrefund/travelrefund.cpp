@@ -201,9 +201,8 @@ class [[eosio::contract("travelrefund")]] travelrefund : public eosio::contract 
 
         [[eosio::action]]
         void disburse() {
+            require_auth(admin_user);
             eosio::name from{"travelrefund"};
-            require_auth(from);
-
             eosio::symbol eos_symbol{eosio::symbol_code{"EOS"}, 4};
 
             PayoutMultiIndex payouts( get_self(), get_first_receiver().value );
