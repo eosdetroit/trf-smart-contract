@@ -6,8 +6,8 @@ accounts:
     permission: active
   weight: 1
 - permission:
-    actor: eosio.code
-    permission: active
+    actor: travelrefund
+    permission: eosio.code
   weight: 3
 - permission:
     actor: eosiodetroit
